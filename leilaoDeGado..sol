@@ -14,15 +14,13 @@ contract LeilaoDeGado {
     address public licitanteVencedor;
     uint public rodada;
     address private semLancesNaRodada = address(0);
-    string public chavePublicaLeiloeiro;
     string public data;
-    string public chavePublicaVencedor;
 
     struct Licitante {
         address conta;
         string nome;
         string cpf;
-        string chavePublica;
+        address endereco; // Mudança: Armazenar o endereço diretamente
     }
 
     Licitante[] public licitantes;
@@ -41,7 +39,7 @@ contract LeilaoDeGado {
         uint valor,
         string nomeVencedor,
         string cpfVencedor,
-        string chavePublicaVencedor
+        address enderecoDoVencedor // Mudança: Armazenar o endereço diretamente
     );
 
     event NovaTransacao(
@@ -57,7 +55,6 @@ contract LeilaoDeGado {
         uint _precoInicial,
         uint _duracaoRodada,
         uint _numeroRodadas,
-        string memory _chaveLeiloeiro,
         string memory _data
     ) {
         leiloeiro = msg.sender;
@@ -69,14 +66,13 @@ contract LeilaoDeGado {
         maiorLance = 0;
         licitanteVencedor = address(0);
         rodada = 1;
-        chavePublicaLeiloeiro = _chaveLeiloeiro;
         data = _data;
 
         Licitante memory primeiroLicitante = Licitante({
             conta: msg.sender,
             nome: "Leiloeiro",
             cpf: "",
-            chavePublica: _chaveLeiloeiro
+            endereco: msg.sender // redundancia, 
         });
         licitantes.push(primeiroLicitante);
     }
@@ -99,7 +95,7 @@ contract LeilaoDeGado {
         );
     }
 
-function darLance(uint256 _valor, string memory _nome, string memory _cpf, string memory _chavePublica) public {
+function darLance(uint256 _valor, string memory _nome, string memory _cpf) public {
     require(leilaoAberto, "O leilao esta fechado.");
     require(block.timestamp <= horarioFim, "O leilao desta rodada ja encerrou.");
     require(_valor > maiorLance, "O lance nao e maior que o lance atual");
@@ -112,15 +108,13 @@ function darLance(uint256 _valor, string memory _nome, string memory _cpf, strin
         conta: msg.sender,
         nome: _nome,
         cpf: _cpf,
-        chavePublica: _chavePublica
+        endereco: msg.sender // Armazene o endereço diretamente
     });
-
-    // Atualize a chave pública do vencedor
-    chavePublicaVencedor = _chavePublica;
 
     licitantes.push(novoLicitante);
     emit NovoLance(msg.sender, _valor);
 }
+
 
 function verificarEncerramentoRodada() public {
     require(block.timestamp > horarioFim, "O tempo ainda nao acabou");
@@ -130,13 +124,13 @@ function verificarEncerramentoRodada() public {
     } else {
         string memory nomeVencedor;
         string memory cpfVencedor;
-        string memory enderecoDoVencedor;
+        address enderecoDoVencedor; // Alteração: Use 'address' em vez de 'string'
 
         for (uint i = 0; i < licitantes.length; i++) {
             if (licitantes[i].conta == licitanteVencedor) {
                 nomeVencedor = licitantes[i].nome;
                 cpfVencedor = licitantes[i].cpf;
-                enderecoDoVencedor = licitantes[i].chavePublica;
+                enderecoDoVencedor = licitantes[i].endereco; // Alteração: Use o endereço diretamente
                 break;
             }
         }
