@@ -20,7 +20,7 @@ contract LeilaoDeGado {
         address conta;
         string nome;
         string cpf;
-        address endereco; // Mudança: Armazenar o endereço diretamente
+        address endereco; 
     }
 
     Licitante[] public licitantes;
@@ -39,7 +39,7 @@ contract LeilaoDeGado {
         uint valor,
         string nomeVencedor,
         string cpfVencedor,
-        address enderecoDoVencedor // Mudança: Armazenar o endereço diretamente
+        address enderecoDoVencedor 
     );
 
     event NovaTransacao(
@@ -72,7 +72,7 @@ contract LeilaoDeGado {
             conta: msg.sender,
             nome: "Leiloeiro",
             cpf: "",
-            endereco: msg.sender // redundancia, 
+            endereco: msg.sender // redundancia
         });
         licitantes.push(primeiroLicitante);
     }
@@ -108,7 +108,7 @@ function darLance(uint256 _valor, string memory _nome, string memory _cpf) publi
         conta: msg.sender,
         nome: _nome,
         cpf: _cpf,
-        endereco: msg.sender // Armazene o endereço diretamente
+        endereco: msg.sender 
     });
 
     licitantes.push(novoLicitante);
@@ -124,14 +124,13 @@ function verificarEncerramentoRodada() public {
     } else {
         string memory nomeVencedor;
         string memory cpfVencedor;
-        address enderecoDoVencedor; // Alteração: Use 'address' em vez de 'string'
+        address enderecoDoVencedor; 
 
         for (uint i = 0; i < licitantes.length; i++) {
             if (licitantes[i].conta == licitanteVencedor) {
                 nomeVencedor = licitantes[i].nome;
                 cpfVencedor = licitantes[i].cpf;
-                enderecoDoVencedor = licitantes[i].endereco; // Alteração: Use o endereço diretamente
-                break;
+                enderecoDoVencedor = licitantes[i].endereco; 
             }
         }
 
@@ -151,7 +150,6 @@ function pagamentoParaLeiloeiro(uint valorDoPagamento) public {
     require(msg.sender == licitanteVencedor,"Apenas o licitante vencedor pode realizar o pagamento.");
     require(valorDoPagamento == maiorLance,"O valor do pagamento deve ser igual ao maior lance.");
 
-    // Agora o licitante vencedor realizar o pagamento manualmente
     address payable leiloeiroPayable = payable(leiloeiro);
     leiloeiroPayable.transfer(valorDoPagamento);
 
