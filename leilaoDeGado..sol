@@ -50,6 +50,8 @@ contract LeilaoDeGado {
         uint bloco
     );
 
+    event DebugLog(string message, uint value);
+
     constructor(
         string memory _nomeAtivo,
         uint _precoInicial,
@@ -97,11 +99,15 @@ contract LeilaoDeGado {
 
 function darLance(uint256 _valor, string memory _nome, string memory _cpf) public {
     require(leilaoAberto, "O leilao esta fechado.");
-    require(block.timestamp <= horarioFim, "O leilao desta rodada ja encerrou.");
-    require(_valor > maiorLance, "O lance nao e maior que o lance atual");
-    require(_valor >= precoInicial, "O lance nao atende o preco minimo");
+    require(block.timestamp <= horarioFim, "O leilao desta rodada ja encerrou");
+    
+    // Converta o lance para Finney (1 ether = 1e15 finney)
+    uint valorEmFinney = (_valor * 1 ether) / 1e15;
 
-    maiorLance = _valor;
+    require(valorEmFinney > maiorLance, "O lance nao e maior que o lance atual");
+    require(valorEmFinney >= precoInicial, "O lance nao atende o preco minimo");
+
+    maiorLance = valorEmFinney;
     licitanteVencedor = msg.sender;
 
     Licitante memory novoLicitante = Licitante({
@@ -112,50 +118,54 @@ function darLance(uint256 _valor, string memory _nome, string memory _cpf) publi
     });
 
     licitantes.push(novoLicitante);
-    emit NovoLance(msg.sender, _valor);
+    emit NovoLance(msg.sender, valorEmFinney);
+    emit DebugLog("Maior lance", maiorLance);
 }
 
 
 function verificarEncerramentoRodada() public {
-    require(block.timestamp > horarioFim, "O tempo ainda nao acabou");
+    // Verifica se o tempo expirou
+    if (block.timestamp > horarioFim) {
+        // Condição para encerrar o leilão
+        if (licitanteVencedor == semLancesNaRodada) {
+            leilaoAberto = false;
+        } else {
+            string memory nomeVencedor;
+            string memory cpfVencedor;
+            address enderecoDoVencedor; 
 
-    if (licitanteVencedor == semLancesNaRodada) {
-        leilaoAberto = false;
-    } else {
-        string memory nomeVencedor;
-        string memory cpfVencedor;
-        address enderecoDoVencedor; 
-
-        for (uint i = 0; i < licitantes.length; i++) {
-            if (licitantes[i].conta == licitanteVencedor) {
-                nomeVencedor = licitantes[i].nome;
-                cpfVencedor = licitantes[i].cpf;
-                enderecoDoVencedor = licitantes[i].endereco; 
+            for (uint i = 0; i < licitantes.length; i++) {
+                if (licitantes[i].conta == licitanteVencedor) {
+                    nomeVencedor = licitantes[i].nome;
+                    cpfVencedor = licitantes[i].cpf;
+                    enderecoDoVencedor = licitantes[i].endereco; 
+                }
             }
-        }
 
-        emit LeilaoEncerrado(
-            licitanteVencedor,
-            maiorLance,
-            nomeVencedor,
-            cpfVencedor,
-            enderecoDoVencedor
-        );
+            emit LeilaoEncerrado(
+                licitanteVencedor,
+                maiorLance,
+                nomeVencedor,
+                cpfVencedor,
+                enderecoDoVencedor
+            );
+
+            // Agora você pode realizar outras ações necessárias
+        }
     }
 }
 
 
-function pagamentoParaLeiloeiro(uint valorDoPagamento) public {
-    require(!leilaoAberto, "O leilao ainda esta aberto.");
-    require(msg.sender == licitanteVencedor,"Apenas o licitante vencedor pode realizar o pagamento.");
-    require(valorDoPagamento == maiorLance,"O valor do pagamento deve ser igual ao maior lance.");
+    function realizarPagamento() public payable {
+        require(!leilaoAberto, "O leilao ainda esta aberto.");
+        require(msg.sender == licitanteVencedor, "Apenas o licitante vencedor pode realizar o pagamento.");
+        require(msg.value >= maiorLance, "O valor do pagamento deve ser igual ao maior lance.");
 
-    address payable leiloeiroPayable = payable(leiloeiro);
-    leiloeiroPayable.transfer(valorDoPagamento);
+        address payable leiloeiroPayable = payable(leiloeiro);
+        leiloeiroPayable.transfer(msg.value);
 
-    leilaoAberto = false;
-}
-
+        leilaoAberto = false;
+    }
 
     function finalizarLeilao() public somenteLeiloeiro {
         require(leilaoAberto, "O leilao esta fechado ou nao foi iniciado.");
